@@ -57,8 +57,9 @@ func (plugin) DetermineVersions(_ context.Context, _ *config, input *sdk.Determi
 }
 
 func (plugin) DetermineStrategy(context.Context, *config, *sdk.DetermineStrategyInput[applicationConfig]) (*sdk.DetermineStrategyResponse, error) {
-	panic("unimplemented")
+	return nil, nil
 }
+
 func (plugin) BuildPipelineSyncStages(context.Context, *config, *sdk.BuildPipelineSyncStagesInput) (*sdk.BuildPipelineSyncStagesResponse, error) {
 	panic("unimplemented")
 }
