@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 
 	sdk "github.com/pipe-cd/piped-plugin-sdk-go"
@@ -29,4 +30,27 @@ func main() {
 	if err := plugin.Run(); err != nil {
 		log.Fatalln(err)
 	}
+}
+
+var _ sdk.DeploymentPlugin[config, deployTargetConfig, applicationConfig] = plugin{}
+
+type plugin struct{}
+
+func (plugin) FetchDefinedStages() []string {
+	panic("unimplemented")
+}
+func (plugin) DetermineVersions(context.Context, *config, *sdk.DetermineVersionsInput[applicationConfig]) (*sdk.DetermineVersionsResponse, error) {
+	panic("unimplemented")
+}
+func (plugin) DetermineStrategy(context.Context, *config, *sdk.DetermineStrategyInput[applicationConfig]) (*sdk.DetermineStrategyResponse, error) {
+	panic("unimplemented")
+}
+func (plugin) BuildPipelineSyncStages(context.Context, *config, *sdk.BuildPipelineSyncStagesInput) (*sdk.BuildPipelineSyncStagesResponse, error) {
+	panic("unimplemented")
+}
+func (plugin) BuildQuickSyncStages(context.Context, *config, *sdk.BuildQuickSyncStagesInput) (*sdk.BuildQuickSyncStagesResponse, error) {
+	panic("unimplemented")
+}
+func (plugin) ExecuteStage(context.Context, *config, []*sdk.DeployTarget[deployTargetConfig], *sdk.ExecuteStageInput[applicationConfig]) (*sdk.ExecuteStageResponse, error) {
+	panic("unimplemented")
 }
