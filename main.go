@@ -128,6 +128,27 @@ func (plugin) BuildQuickSyncStages(_ context.Context, _ *config, input *sdk.Buil
 	}, nil
 }
 
-func (plugin) ExecuteStage(context.Context, *config, []*sdk.DeployTarget[deployTargetConfig], *sdk.ExecuteStageInput[applicationConfig]) (*sdk.ExecuteStageResponse, error) {
+func (p plugin) ExecuteStage(ctx context.Context, _ *config, _ []*sdk.DeployTarget[deployTargetConfig], input *sdk.ExecuteStageInput[applicationConfig]) (*sdk.ExecuteStageResponse, error) {
+	switch input.Request.StageName {
+	case stageDiff:
+		return p.executeStageDiff(ctx, input)
+	case stageSync:
+		return p.executeStageSync(ctx, input)
+	case stageRollback:
+		return p.executeStageRollback(ctx, input)
+	default:
+		return nil, fmt.Errorf("unknown stage: %s", input.Request.StageName)
+	}
+}
+
+func (plugin) executeStageDiff(ctx context.Context, input *sdk.ExecuteStageInput[applicationConfig]) (*sdk.ExecuteStageResponse, error) {
+	panic("unimplemented")
+}
+
+func (plugin) executeStageSync(ctx context.Context, input *sdk.ExecuteStageInput[applicationConfig]) (*sdk.ExecuteStageResponse, error) {
+	panic("unimplemented")
+}
+
+func (plugin) executeStageRollback(ctx context.Context, input *sdk.ExecuteStageInput[applicationConfig]) (*sdk.ExecuteStageResponse, error) {
 	panic("unimplemented")
 }
