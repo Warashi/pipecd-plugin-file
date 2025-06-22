@@ -3,7 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"log"
+	"os"
+	"path/filepath"
 
 	sdk "github.com/pipe-cd/piped-plugin-sdk-go"
 )
@@ -151,4 +154,22 @@ func (plugin) executeStageSync(ctx context.Context, input *sdk.ExecuteStageInput
 
 func (plugin) executeStageRollback(ctx context.Context, input *sdk.ExecuteStageInput[applicationConfig]) (*sdk.ExecuteStageResponse, error) {
 	panic("unimplemented")
+}
+
+func listFiles(f fs.FS) (map[string]struct{}, error) {
+	files := make(map[string]struct{})
+
+	if err := fs.WalkDir(f, ".", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if !d.IsDir() {
+			files[path] = struct{}{}
+		}
+		return nil
+	}); err != nil {
+		return nil, fmt.Errorf("error walking through files: %w", err)
+	}
+
+	return files, nil
 }
