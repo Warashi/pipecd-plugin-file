@@ -50,9 +50,12 @@ func (plugin) FetchDefinedStages() []string {
 	}
 }
 
-func (plugin) DetermineVersions(context.Context, *config, *sdk.DetermineVersionsInput[applicationConfig]) (*sdk.DetermineVersionsResponse, error) {
-	panic("unimplemented")
+func (plugin) DetermineVersions(_ context.Context, _ *config, input *sdk.DetermineVersionsInput[applicationConfig]) (*sdk.DetermineVersionsResponse, error) {
+	return &sdk.DetermineVersionsResponse{
+		Versions: []sdk.ArtifactVersion{{Version: input.Request.DeploymentSource.CommitHash}},
+	}, nil
 }
+
 func (plugin) DetermineStrategy(context.Context, *config, *sdk.DetermineStrategyInput[applicationConfig]) (*sdk.DetermineStrategyResponse, error) {
 	panic("unimplemented")
 }
