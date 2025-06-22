@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 
 	sdk "github.com/pipe-cd/piped-plugin-sdk-go"
@@ -60,9 +61,52 @@ func (plugin) DetermineStrategy(context.Context, *config, *sdk.DetermineStrategy
 	return nil, nil
 }
 
-func (plugin) BuildPipelineSyncStages(context.Context, *config, *sdk.BuildPipelineSyncStagesInput) (*sdk.BuildPipelineSyncStagesResponse, error) {
-	panic("unimplemented")
+func (plugin) BuildPipelineSyncStages(_ context.Context, _ *config, input *sdk.BuildPipelineSyncStagesInput) (*sdk.BuildPipelineSyncStagesResponse, error) {
+	if len(input.Request.Stages) == 0 {
+		return nil, fmt.Errorf("no stages defined in the request")
+	}
+
+	stages := make([]sdk.PipelineStage, 0, len(input.Request.Stages)+1) // +1 for the rollback stage
+	for _, s := range input.Request.Stages {
+		switch s.Name {
+		case stageDiff:
+			stages = append(stages, sdk.PipelineStage{
+				Index: s.Index,
+				Name:  stageDiff,
+			})
+		case stageSync:
+			stages = append(stages, sdk.PipelineStage{
+				Index: s.Index,
+				Name:  stageSync,
+			})
+		default:
+			return nil, fmt.Errorf("unknown stage: %s", s.Name)
+		}
+	}
+
+	if input.Request.Rollback {
+		// Find the minimum index from the defined stages to set the rollback stage index.
+		// The rollback stages will be executed the order of the indexes when the pipeline is failed or canceled.
+		// In this case, we want to execute the rollback stage in the order of the each first stage of the plugins.
+		// So we need to find the minimum index from the defined stages.
+		idx := input.Request.Stages[0].Index
+		for _, s := range input.Request.Stages[1:] {
+			if s.Index < idx {
+				idx = s.Index
+			}
+		}
+		stages = append(stages, sdk.PipelineStage{
+			Index:    idx,
+			Name:     stageRollback,
+			Rollback: true,
+		})
+	}
+
+	return &sdk.BuildPipelineSyncStagesResponse{
+		Stages: stages,
+	}, nil
 }
+
 func (plugin) BuildQuickSyncStages(context.Context, *config, *sdk.BuildQuickSyncStagesInput) (*sdk.BuildQuickSyncStagesResponse, error) {
 	panic("unimplemented")
 }
