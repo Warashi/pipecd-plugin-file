@@ -36,9 +36,20 @@ var _ sdk.DeploymentPlugin[config, deployTargetConfig, applicationConfig] = plug
 
 type plugin struct{}
 
+const (
+	stageDiff     = "FILE_DIFF"
+	stageSync     = "FILE_SYNC"
+	stageRollback = "FILE_ROLLBACK"
+)
+
 func (plugin) FetchDefinedStages() []string {
-	panic("unimplemented")
+	return []string{
+		stageDiff,
+		stageSync,
+		stageRollback,
+	}
 }
+
 func (plugin) DetermineVersions(context.Context, *config, *sdk.DetermineVersionsInput[applicationConfig]) (*sdk.DetermineVersionsResponse, error) {
 	panic("unimplemented")
 }
