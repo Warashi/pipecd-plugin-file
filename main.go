@@ -107,9 +107,27 @@ func (plugin) BuildPipelineSyncStages(_ context.Context, _ *config, input *sdk.B
 	}, nil
 }
 
-func (plugin) BuildQuickSyncStages(context.Context, *config, *sdk.BuildQuickSyncStagesInput) (*sdk.BuildQuickSyncStagesResponse, error) {
-	panic("unimplemented")
+func (plugin) BuildQuickSyncStages(_ context.Context, _ *config, input *sdk.BuildQuickSyncStagesInput) (*sdk.BuildQuickSyncStagesResponse, error) {
+	stages := make([]sdk.QuickSyncStage, 0, 2)
+
+	stages = append(stages, sdk.QuickSyncStage{
+		Name:        stageSync,
+		Description: "Sync stage", // Description is displayed in the UI.
+	})
+
+	if input.Request.Rollback {
+		stages = append(stages, sdk.QuickSyncStage{
+			Name:        stageRollback,
+			Description: "Rollback stage",
+			Rollback:    true,
+		})
+	}
+
+	return &sdk.BuildQuickSyncStagesResponse{
+		Stages: stages,
+	}, nil
 }
+
 func (plugin) ExecuteStage(context.Context, *config, []*sdk.DeployTarget[deployTargetConfig], *sdk.ExecuteStageInput[applicationConfig]) (*sdk.ExecuteStageResponse, error) {
 	panic("unimplemented")
 }
