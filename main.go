@@ -220,11 +220,65 @@ func (plugin) executeStageDiff(ctx context.Context, input *sdk.ExecuteStageInput
 }
 
 func (plugin) executeStageSync(ctx context.Context, input *sdk.ExecuteStageInput[applicationConfig]) (*sdk.ExecuteStageResponse, error) {
-	panic("unimplemented")
+	lp := input.Client.LogPersister()
+
+	lp.Info("Copying files to the target directory...")
+	if err := copyFiles(
+		input.Request.TargetDeploymentSource.ApplicationConfig.Spec.Path,
+		os.DirFS(input.Request.TargetDeploymentSource.ApplicationDirectory),
+		map[string]struct{}{
+			filepath.Base(input.Request.TargetDeploymentSource.ApplicationConfigFilename): {},
+		},
+	); err != nil {
+		return nil, fmt.Errorf("error copying files: %w", err)
+	}
+
+	lp.Info("Removing files which are not in the git repository from the target directory...")
+	if err := removeFiles(
+		input.Request.TargetDeploymentSource.ApplicationConfig.Spec.Path,
+		os.DirFS(input.Request.TargetDeploymentSource.ApplicationDirectory),
+		map[string]struct{}{
+			filepath.Base(input.Request.TargetDeploymentSource.ApplicationConfigFilename): {},
+		},
+	); err != nil {
+		return nil, fmt.Errorf("error removing files: %w", err)
+	}
+
+	lp.Success("File sync completed")
+	return &sdk.ExecuteStageResponse{
+		Status: sdk.StageStatusSuccess,
+	}, nil
 }
 
 func (plugin) executeStageRollback(ctx context.Context, input *sdk.ExecuteStageInput[applicationConfig]) (*sdk.ExecuteStageResponse, error) {
-	panic("unimplemented")
+	lp := input.Client.LogPersister()
+
+	lp.Info("Copying files to the target directory...")
+	if err := copyFiles(
+		input.Request.RunningDeploymentSource.ApplicationConfig.Spec.Path,
+		os.DirFS(input.Request.RunningDeploymentSource.ApplicationDirectory),
+		map[string]struct{}{
+			filepath.Base(input.Request.RunningDeploymentSource.ApplicationConfigFilename): {},
+		},
+	); err != nil {
+		return nil, fmt.Errorf("error copying files: %w", err)
+	}
+
+	lp.Info("Removing files which are not in the git repository from the target directory...")
+	if err := removeFiles(
+		input.Request.RunningDeploymentSource.ApplicationConfig.Spec.Path,
+		os.DirFS(input.Request.RunningDeploymentSource.ApplicationDirectory),
+		map[string]struct{}{
+			filepath.Base(input.Request.RunningDeploymentSource.ApplicationConfigFilename): {},
+		},
+	); err != nil {
+		return nil, fmt.Errorf("error removing files: %w", err)
+	}
+
+	lp.Success("File sync completed")
+	return &sdk.ExecuteStageResponse{
+		Status: sdk.StageStatusSuccess,
+	}, nil
 }
 
 func listFiles(f fs.FS) (map[string]struct{}, error) {
