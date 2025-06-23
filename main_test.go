@@ -1,6 +1,7 @@
 package main
 
 import (
+	"io/fs"
 	"os"
 	"reflect"
 	"testing"
@@ -57,5 +58,56 @@ func TestDifferenceFiles(t *testing.T) {
 	differences2 := differenceFiles(files2, files1)
 	if !reflect.DeepEqual(differences2, expectedDifferences2) {
 		t.Fatalf("expected %v differences, got %v", expectedDifferences2, differences2)
+	}
+}
+
+func TestIsFileContentDifferent(t *testing.T) {
+	fs1 := os.DirFS("./testdata/difference_file_content/path1")
+	fs2 := os.DirFS("./testdata/difference_file_content/path2")
+
+	testCases := []struct {
+		name          string
+		fsA           fs.FS
+		fsB           fs.FS
+		path          string
+		wantDifferent bool
+		wantErr       bool
+	}{
+		{
+			name:          "same content",
+			fsA:           fs1,
+			fsB:           fs2,
+			path:          "file1.txt",
+			wantDifferent: false,
+			wantErr:       false,
+		},
+		{
+			name:          "different content",
+			fsA:           fs1,
+			fsB:           fs2,
+			path:          "file2.txt",
+			wantDifferent: true,
+			wantErr:       false,
+		},
+		{
+			name:          "file not found",
+			fsA:           fs1,
+			fsB:           fs2,
+			path:          "file3.txt",
+			wantDifferent: false,
+			wantErr:       true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			gotDifferent, err := isFileContentDifferent(tc.fsA, tc.fsB, tc.path)
+			if (err != nil) != tc.wantErr {
+				t.Fatalf("isFileContentDifferent() error = %v, wantErr %v", err, tc.wantErr)
+			}
+			if gotDifferent != tc.wantDifferent {
+				t.Errorf("isFileContentDifferent() = %v, want %v", gotDifferent, tc.wantDifferent)
+			}
+		})
 	}
 }

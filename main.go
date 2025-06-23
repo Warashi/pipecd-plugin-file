@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"io/fs"
 	"log"
 	"os"
@@ -185,4 +187,31 @@ func differenceFiles(a, b map[string]struct{}) map[string]struct{} {
 	}
 
 	return differences
+}
+
+// isFileContentDifferent returns true if the content of the file is different between a and b.
+func isFileContentDifferent(a, b fs.FS, path string) (bool, error) {
+	aFile, err := a.Open(path)
+	if err != nil {
+		return false, fmt.Errorf("error opening file %s: %w", path, err)
+	}
+	defer aFile.Close()
+
+	bFile, err := b.Open(path)
+	if err != nil {
+		return false, fmt.Errorf("error opening file %s: %w", path, err)
+	}
+	defer bFile.Close()
+
+	aContent, err := io.ReadAll(aFile)
+	if err != nil {
+		return false, fmt.Errorf("error reading file %s: %w", path, err)
+	}
+
+	bContent, err := io.ReadAll(bFile)
+	if err != nil {
+		return false, fmt.Errorf("error reading file %s: %w", path, err)
+	}
+
+	return !bytes.Equal(aContent, bContent), nil
 }
