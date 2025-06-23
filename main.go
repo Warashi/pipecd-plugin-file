@@ -173,3 +173,16 @@ func listFiles(f fs.FS) (map[string]struct{}, error) {
 
 	return files, nil
 }
+
+// differenceFiles returns the files that are in a but not in b.
+func differenceFiles(a, b map[string]struct{}) map[string]struct{} {
+	differences := make(map[string]struct{})
+
+	for path := range a {
+		if _, ok := b[path]; !ok {
+			differences[path] = struct{}{}
+		}
+	}
+
+	return differences
+}
