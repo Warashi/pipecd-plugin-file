@@ -7,8 +7,9 @@ import (
 	"io"
 	"io/fs"
 	"log"
+	"maps"
 	"os"
-	"path/filepath"
+	"slices"
 
 	sdk "github.com/pipe-cd/piped-plugin-sdk-go"
 )
@@ -147,7 +148,74 @@ func (p plugin) ExecuteStage(ctx context.Context, _ *config, _ []*sdk.DeployTarg
 }
 
 func (plugin) executeStageDiff(ctx context.Context, input *sdk.ExecuteStageInput[applicationConfig]) (*sdk.ExecuteStageResponse, error) {
-	panic("unimplemented")
+	lp := input.Client.LogPersister()
+
+	lp.Info("Listing files in the git repository...")
+	sourceFiles, err := listFiles(os.DirFS(input.Request.TargetDeploymentSource.ApplicationDirectory))
+	if err != nil {
+		return nil, fmt.Errorf("error listing files: %w", err)
+	}
+
+	delete(sourceFiles, filepath.Base(input.Request.TargetDeploymentSource.ApplicationConfigFilename))
+
+	lp.Info("Listing files in the target directory...")
+	targetFiles, err := listFiles(os.DirFS(input.Request.TargetDeploymentSource.ApplicationConfig.Spec.Path))
+	if err != nil {
+		return nil, fmt.Errorf("error listing files: %w", err)
+	}
+
+	addedFiles := differenceFiles(sourceFiles, targetFiles)
+	removedFiles := differenceFiles(targetFiles, sourceFiles)
+
+	mergedFiles := maps.Clone(sourceFiles)
+	maps.Copy(mergedFiles, targetFiles)
+
+	diffFiles := make(map[string]struct{})
+	for path := range mergedFiles {
+		if _, ok := addedFiles[path]; ok {
+			continue
+		}
+
+		if _, ok := removedFiles[path]; ok {
+			continue
+		}
+
+		different, err := isFileContentDifferent(os.DirFS(input.Request.TargetDeploymentSource.ApplicationDirectory), os.DirFS(input.Request.TargetDeploymentSource.ApplicationConfig.Spec.Path), path)
+		if err != nil {
+			return nil, fmt.Errorf("error checking if file content is different: %w", err)
+		}
+
+		if different {
+			diffFiles[path] = struct{}{}
+		}
+	}
+
+	lp.Info("Summary of the file diff:")
+	lp.Info("--------------------------------")
+	lp.Info("Added files:")
+	for _, path := range slices.Sorted(maps.Keys(addedFiles)) {
+		lp.Info(path)
+	}
+
+	lp.Info("--------------------------------")
+	lp.Info("Removed files:")
+	for _, path := range slices.Sorted(maps.Keys(removedFiles)) {
+		lp.Info(path)
+	}
+
+	lp.Info("--------------------------------")
+	lp.Info("Changed files:")
+	for _, path := range slices.Sorted(maps.Keys(diffFiles)) {
+		lp.Info(path)
+	}
+
+	lp.Info("--------------------------------")
+
+	lp.Success("File diff completed")
+
+	return &sdk.ExecuteStageResponse{
+		Status: sdk.StageStatusSuccess,
+	}, nil
 }
 
 func (plugin) executeStageSync(ctx context.Context, input *sdk.ExecuteStageInput[applicationConfig]) (*sdk.ExecuteStageResponse, error) {
