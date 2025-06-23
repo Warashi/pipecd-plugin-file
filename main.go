@@ -331,3 +331,29 @@ func copyFiles(dstDir string, files fs.FS, exclude map[string]struct{}) error {
 
 	return nil
 }
+
+func removeFiles(dstDir string, files fs.FS, exclude map[string]struct{}) error {
+	sourceFiles, err := listFiles(files)
+	if err != nil {
+		return fmt.Errorf("listing files: %w", err)
+	}
+
+	for path := range exclude {
+		delete(sourceFiles, path)
+	}
+
+	dstFiles, err := listFiles(os.DirFS(dstDir))
+	if err != nil {
+		return fmt.Errorf("listing files: %w", err)
+	}
+
+	removedFiles := differenceFiles(dstFiles, sourceFiles)
+
+	for path := range removedFiles {
+		if err := os.Remove(filepath.Join(dstDir, path)); err != nil {
+			return fmt.Errorf("removing file %s: %w", path, err)
+		}
+	}
+
+	return nil
+}

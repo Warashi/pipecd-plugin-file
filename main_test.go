@@ -154,3 +154,39 @@ func TestCopyFiles(t *testing.T) {
 		}
 	}
 }
+
+func TestRemoveFiles(t *testing.T) {
+	srcDir := "testdata/remove_files/src"
+	// `dst` directory will be modified by removeFiles, so we need to copy it to a temporary directory.
+	dstDir := t.TempDir()
+	if err := copyFiles(dstDir, os.DirFS("testdata/remove_files/dst_before"), nil); err != nil {
+		t.Fatalf("failed to copy dst_before: %v", err)
+	}
+
+	// Run removeFiles
+	if err := removeFiles(dstDir, os.DirFS(srcDir), map[string]struct{}{"excluded_file.txt": {}}); err != nil {
+		t.Fatalf("removeFiles() error = %v", err)
+	}
+
+	// Check that the correct files were removed and others remain
+	srcFS := os.DirFS(srcDir)
+	expectedFiles, err := listFiles(srcFS)
+	if err != nil {
+		t.Fatalf("failed to list files in src dir: %v", err)
+	}
+
+	delete(expectedFiles, "excluded_file.txt") // excluded_file.txt is excluded
+
+	dstFiles, err := listFiles(os.DirFS(dstDir))
+	if err != nil {
+		t.Fatalf("failed to list files in dst dir: %v", err)
+	}
+
+	if !reflect.DeepEqual(dstFiles, expectedFiles) {
+		t.Errorf("file list differs. got %v, want %v", dstFiles, expectedFiles)
+	}
+
+	if _, err := os.Stat(filepath.Join(dstDir, "file_to_remove.txt")); !os.IsNotExist(err) {
+		t.Errorf("file_to_remove.txt was not removed")
+	}
+}
