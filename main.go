@@ -9,6 +9,7 @@ import (
 	"log"
 	"maps"
 	"os"
+	"path/filepath"
 	"slices"
 
 	sdk "github.com/pipe-cd/piped-plugin-sdk-go"
@@ -282,4 +283,51 @@ func isFileContentDifferent(a, b fs.FS, path string) (bool, error) {
 	}
 
 	return !bytes.Equal(aContent, bContent), nil
+}
+
+func copyFiles(dstDir string, files fs.FS, exclude map[string]struct{}) error {
+	walkDirFunc := func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.IsDir() {
+			// No need to create directory here, as os.Create will fail if parent directory does not exist.
+			// Instead, we will create parent directory when we create a file.
+			return nil
+		}
+
+		if _, ok := exclude[path]; ok {
+			return nil
+		}
+
+		dstPath := filepath.Join(dstDir, path)
+
+		if err := os.MkdirAll(filepath.Dir(dstPath), 0755); err != nil {
+			return err
+		}
+
+		srcFile, err := files.Open(path)
+		if err != nil {
+			return err
+		}
+		defer srcFile.Close()
+
+		dstFile, err := os.Create(dstPath)
+		if err != nil {
+			return err
+		}
+		defer dstFile.Close()
+
+		if _, err := io.Copy(dstFile, srcFile); err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	if err := fs.WalkDir(files, ".", walkDirFunc); err != nil {
+		return fmt.Errorf("walking through files: %w", err)
+	}
+
+	return nil
 }

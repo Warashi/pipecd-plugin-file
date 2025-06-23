@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"io/fs"
 	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 )
@@ -109,5 +111,46 @@ func TestIsFileContentDifferent(t *testing.T) {
 				t.Errorf("isFileContentDifferent() = %v, want %v", gotDifferent, tc.wantDifferent)
 			}
 		})
+	}
+}
+
+func TestCopyFiles(t *testing.T) {
+	srcDir := "testdata/list_files"
+	dstDir := t.TempDir()
+
+	if err := copyFiles(dstDir, os.DirFS(srcDir), map[string]struct{}{"file2.txt": {}}); err != nil {
+		t.Fatalf("copyFiles() error = %v", err)
+	}
+
+	srcFiles, err := listFiles(os.DirFS(srcDir))
+	if err != nil {
+		t.Fatalf("listFiles() on source dir failed: %v", err)
+	}
+
+	dstFiles, err := listFiles(os.DirFS(dstDir))
+	if err != nil {
+		t.Fatalf("listFiles() on dest dir failed: %v", err)
+	}
+
+	delete(srcFiles, "file2.txt") // file2.txt is excluded
+
+	if !reflect.DeepEqual(srcFiles, dstFiles) {
+		t.Errorf("copied files list differs. got %v, want %v", dstFiles, srcFiles)
+	}
+
+	for path := range srcFiles {
+		srcContent, err := os.ReadFile(filepath.Join(srcDir, path))
+		if err != nil {
+			t.Fatalf("failed to read source file %s: %v", path, err)
+		}
+
+		dstContent, err := os.ReadFile(filepath.Join(dstDir, path))
+		if err != nil {
+			t.Fatalf("failed to read destination file %s: %v", path, err)
+		}
+
+		if !bytes.Equal(srcContent, dstContent) {
+			t.Errorf("content of %s is different", path)
+		}
 	}
 }
