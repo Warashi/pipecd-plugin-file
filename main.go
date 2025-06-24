@@ -30,7 +30,7 @@ type (
 )
 
 func main() {
-	plugin, err := sdk.NewPlugin[config, deployTargetConfig, applicationConfig]("0.0.1")
+	plugin, err := sdk.NewPlugin("0.0.1", sdk.WithDeploymentPlugin(plugin{}))
 	if err != nil {
 		log.Fatalln(err)
 	}
